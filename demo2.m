@@ -1,3 +1,5 @@
+%% Properties setting after drawing
+
 rng(5)
 % Generate random hierarchical dataset (500 items, 3 levels)
 ListA = compose('Class-%s', randi([65, 69], [500, 1]));

@@ -1,42 +1,53 @@
 classdef circTreeChart < handle
-% circTreeChart: Circular tree (radial hierarchy) visualization
-%   Displays hierarchical data as concentric circular layers.
-% =========================================================================
+% circTreeChart - Create and customize circular tree (radial hierarchy) charts / diagrams
+%   CT = circTreeChart(List); creates a circular tree chart from a hierarchical
+%   cell array List, where each row represents a path from root to a leaf.
+%   从层级元胞数组 List 创建圆形树图，每行代表从根到叶的路径。
+%
+%   CT = circTreeChart(List, 'Value', value); associates numeric weights to
+%   edges/nodes, controlling their sizes via NodeSizeLim and EdgeWidthLim.
+%   为边/节点关联数值权重，通过 NodeSizeLim 和 EdgeWidthLim 控制其大小。
+%
+%   CT = circTreeChart(ax, ___); creates the chart in the specified axes.
+%   在指定坐标区创建图表。
+%
+%   CT = circTreeChart(___, propName, propVal); specifies property name-value
+%   pairs when creating the object.
+%   创建对象时指定属性名-属性值对。
+%
+%   CT.propName = propVal; sets properties after creation, before rendering.
+%   创建对象后、绘图前设置属性。
+%
+%   CT = CT.draw(); renders the circular tree chart.
+%   渲染圆形树图。
+%
 % Basic usage
-% -------------------------------------------------------------------------
-% List = {'AAAA','aaa1'; 'AAAA','aaa2'; 'AAAA','aaa3'; 'AAAA','aaa4';
-%     'BBBB','bbb1'; 'BBBB','bbb2'; 'BBBB','bbb3'; 'BBBB','bbb4';
-%     'CCCC','ccc1'; 'CCCC','ccc2'; 'CCCC','ccc3'; 'CCCC','ccc4'};
-% 
-% CT = circTreeChart(List);
-% CT.DispEndNodes = 'on';
-% CT.DispEndLabels = 'on';
-% CT = CT.draw();
+%   List = {'AAAA','aaa1'; 'AAAA','aaa2'; 'AAAA','aaa3'; 'AAAA','aaa4';
+%           'BBBB','bbb1'; 'BBBB','bbb2'; 'BBBB','bbb3'; 'BBBB','bbb4';
+%           'CCCC','ccc1'; 'CCCC','ccc2'; 'CCCC','ccc3'; 'CCCC','ccc4'};
+%   CT = circTreeChart(List);
+%   CT.DispEndNodes = 'on';
+%   CT.DispEndLabels = 'on';
+%   CT = CT.draw();
+
+
 % =========================================================================
 % Zhaoxu Liu / slandarer (2026). circular tree chart 
 % (https://www.mathworks.com/matlabcentral/fileexchange/118325), 
 % MATLAB Central File Exchange. Retrieved April 26, 2026.
+% =========================================================================
 
     properties
         ax
-        arginList = {'Curvature', 'Value', 'DrawEndNodes'}
+        arginList = {'Curvature', 'Value', 'DrawEndNodes', 'DispEndLabels', ...
+            'NodeSizeLim', 'EdgeWidthLim', 'NodeAlpha', 'EdgeAlpha', 'CData'}
         
         Curvature = 1;          % Edge curvature: 0 = straight, 1 = full Bezier
         List                    % Hierarchical data (N x L cell array)
         
         DispEndNodes = 'off'    % Show leaf nodes
         DispEndLabels = 'off'   % Show leaf labels
-        
-        layerSizes = []         % Number of nodes per layer
-        layerNodes = {}         % Node names per layer
-        idList = []             % Hierarchical encoding matrix
-        sz                      % Size of input list
-        
-        baseLayerSizes = []     % Raw layer sizes (before hierarchical grouping)
-        baseLayerNodes = {}     % Raw node names
-        baseIdList = []         % Raw encoding
-        
-        thetaSet = []           % Angular positions of data points
+
         Value = []              % Edge/node weights
         
         % Node and edge size limits [min, max] mapped from data values
@@ -49,7 +60,7 @@ classdef circTreeChart < handle
         CData = [110,110,110; 127, 91, 93; 187,128,110; 197,173,143;  59, 71,111; 104, 95,126;  
                   76,103, 86; 112,112,124;  72, 39, 24; 197,119,106; 160,126, 88; 238,208,146] ./ 255;
 
-        maxValue, minValue       % Value range for scaling
+        
         
         nodeHdl                  % Handles to node patches
         edgeHdl                  % Handles to edge patches
@@ -57,6 +68,19 @@ classdef circTreeChart < handle
         edgeIds                  % Edge identifiers for linking
     end
 
+    properties (Hidden)
+        layerSizes = []         % Number of nodes per layer
+        layerNodes = {}         % Node names per layer
+        idList = []             % Hierarchical encoding matrix
+        sz                      % Size of input list
+
+        baseLayerSizes = []     % Raw layer sizes (before hierarchical grouping)
+        baseLayerNodes = {}     % Raw node names
+        baseIdList = []         % Raw encoding
+
+        thetaSet = []           % Angular positions of data points
+        maxValue, minValue       % Value range for scaling
+    end
     methods
         function obj = circTreeChart(varargin)          
             % Parse axes handle
